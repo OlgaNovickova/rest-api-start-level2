@@ -1,0 +1,102 @@
+<%- include('partials/header'); -%>
+<h1 class="title">Pridėti naują programuotoją</h1>
+
+<div>
+	<div class="add-prog">
+		<form id="programmer-form" method="post" action="/add-programmer">
+			<label for="name">Jūsų vardas</label>
+			<input type="text" id="name" name="name" required />
+			<label for="tech">Jūsų techniniai gebėjimai</label>
+			<input type="text" id="tech" name="tech" required />
+			<label>Ar jūs esate pasiekiamas darbui?</label>
+			<br />
+			<label>
+				<input
+					type="radio"
+					name="free"
+					value="false"
+					checked="checked"	/>No</label>
+			<label>
+				<input
+					type="radio"
+					name="free"
+					value="true" />Yes</label>
+			<br />
+			<br />
+
+			<h4>Kur jūs randates? <br /></h4>			
+			<label for="lat">Platuma</label>			
+			<input type="number" id="lat" name="lat" required />		
+			<label for="lng">Ilguma</label>			
+			<input type="number" id="lng" name="lng" required />
+			
+							
+			<input type='submit' value='Pateikti' />			
+		</form>
+	</div>
+</div>
+
+<script defer>
+	const getCities = async () => {
+		let data = await fetch(
+			'https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/geonames-all-cities-with-a-population-1000/records?limit=100&refine=cou_name_en%3A%22Lithuania%22&fbclid=IwAR056ERlaCOALs55nfqTmpH1qrs1QUCAvaNo1R0fu4SErjvQiN3tWZ2e_PY'
+		)
+		let res = await data.json()
+		let sortedCities = res.results.sort((x, y) =>
+			x.name > y.name ? 1 : y.name > x.name ? -1 : 0
+		)
+
+		populateSelect(sortedCities)
+	}
+
+	const populateSelect = cities => {
+		const locationSelect = document.getElementById('lat', 'lng')
+		cities.forEach(city => {
+			const option = document.createElement('option')
+			option.value = `${city.coordinates.lng}, ${city.coordinates.lat}`
+			option.textContent = city.name
+			locationSelect.appendChild(option)
+		})
+	}
+
+	getCities()
+</script>
+
+<script>
+	const form = document.getElementById('programmer-form')
+
+	form.addEventListener('submit', async function (e) {
+		e.preventDefault()
+
+		let reqBody = {
+			name: form.name.value,
+			tech: form.tech.value.split(','),
+			free: !!form.free.value,
+			location: {
+				type: 'Point',
+				coordinates: [form.lng.value, form.lat.value]
+			},
+		}
+
+		let reqObj = {
+			method: 'POST',
+			body: JSON.stringify(reqBody),
+			headers: {
+				'Content-Type': 'application/json',
+			},
+		}
+
+		try {
+			const resp = await fetch('/api/programuotojai', reqObj)
+			const respData = await resp.json()
+
+			if (respData.dev) {
+				window.location.href = '/'
+			}
+		} catch (err) {
+			console.log(err)
+		}
+	})
+</script>
+
+<%- include('partials/footer'); -%>
